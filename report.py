@@ -10,23 +10,49 @@ teams = [
     'CMSC723_Working_Title_1',
 ]
 
-shapes = {
+solid_shapes = {
     'CMSC723_FYY_2': '\\tdiamond{{{}}}',
     'CMSC723_Technical_Wizards_2': '\\tcircle{{{}}}',
     'CMSC723_FowardRethinking_2': '\\tsquare{{{}}}',
     'CMSC723_Working_Title_1': '\\ttriangle{{{}}}',
 }
 
-color_correct = 'xgreen'
-color_wrong = 'xred'
-color_wrong_end = 'gray'
-color_optimal = 'xyellow'
+hollow_shapes = {
+    'CMSC723_FYY_2': '\\hdiamond{{{}}}',
+    'CMSC723_Technical_Wizards_2': '\\hcircle{{{}}}',
+    'CMSC723_FowardRethinking_2': '\\hsquare{{{}}}',
+    'CMSC723_Working_Title_1': '\\htriangle{{{}}}',
+}
+
+CORRECT = 'correct'
+INCORRECT = 'neg'
+COULDA = 'coulda'
+NADA = 'nada'
+
+shapes = {
+    CORRECT: solid_shapes,
+    INCORRECT: solid_shapes,
+    COULDA: hollow_shapes,
+    NADA: hollow_shapes,
+}
+
+
+colors = {
+    CORRECT: 'xgreen',
+    INCORRECT: 'xred',
+    COULDA: 'xgreen',
+    NADA: 'xred',
+}
 
 frame_header = '\\begin{{frame}}{{Packet {} Question {}}}'
 frame_footer = '\\end{frame}'
 
 questions_dir = '20181215_rounds_questions'
 predictions_dir = '20181215_rounds_predictions'
+
+
+def get_shape(team, outcome):
+    return shapes[outcome][team].format(colors[outcome])
 
 
 def texify_single_quote(in_string):
@@ -80,27 +106,19 @@ for rnd in rounds:
         inserts = []
         for team, predictions in team_predictions.items():
             first_idx, first_guess = get_first(char_index_mapping, predictions[qidx], answer)
-            last_idx, last_guess = get_last(char_index_mapping, predictions[qidx], answer)
             optimal_idx, _ = get_optimal(char_index_mapping, predictions[qidx], answer)
+            last_idx, last_guess = get_last(char_index_mapping, predictions[qidx], answer)
 
             if first_idx < last_idx:
-                color = color_correct if first_guess == answer else color_wrong
+                outcome = CORRECT if first_guess == answer else INCORRECT
                 guess = None if first_guess == answer else first_guess
-                inserts.append((first_idx, shapes[team].format(color), guess))
-                if first_guess != answer:
-                    if optimal_idx < last_idx:
-                        inserts.append((optimal_idx, shapes[team].format(color_optimal), None))
-                    else:
-                        color = color_correct if last_guess == answer else color_wrong_end
-                        guess = None if last_guess == answer else first_guess
-                        inserts.append((last_idx, shapes[team].format(color), guess))
+                inserts.append((first_idx, get_shape(team, outcome), guess))
+                if first_guess != answer and optimal_idx < last_idx:
+                    inserts.append((optimal_idx, get_shape(team, COULDA), None))
+            elif optimal_idx < last_idx:
+                inserts.append((optimal_idx, get_shape(team, COULDA), None))
             else:
-                if optimal_idx < last_idx:
-                    inserts.append((optimal_idx, shapes[team].format(color_optimal), None))
-                else:
-                    color = color_correct if last_guess == answer else color_wrong_end
-                    guess = None if last_guess == answer else first_guess
-                    inserts.append((last_idx, shapes[team].format(color), guess))
+                inserts.append((optimal_idx, get_shape(team, NADA), last_guess))
 
         inserts = sorted(inserts, key=lambda x: x[0])
         inserted = []
